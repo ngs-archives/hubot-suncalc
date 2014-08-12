@@ -35,9 +35,18 @@ describe 'hubot-suncalc', ->
 
   mockResult = (query, filename)->
     nock.disableNetConnect()
-    nockScope = nock('http://maps.googleapis.com')
-      .get("/maps/api/geocode/json?language=en&address=#{query}")
+    nockScope = nock('https://maps.googleapis.com')
+    nockScope
+      .get("/maps/api/geocode/json?language=en&address=#{query}&key=fake-key")
       .replyWithFile 200, "#{__dirname}/fixtures/#{filename}.json"
+    tz = if query is 'taipei' then 'tst' else 'jst'
+    loc = {
+      tst: '25.091075,121.5598345'
+      jst: '33.8983681,130.8189646'
+    }[tz]
+    nockScope
+      .get("/maps/api/timezone/json?language=en&location=#{encodeURIComponent loc}&timestamp=1407628800&key=fake-key")
+      .replyWithFile 200, "#{__dirname}/fixtures/#{tz}.json"
 
   adapterEvent = (event, done, example)->
     adapter.once event, ->
@@ -47,6 +56,7 @@ describe 'hubot-suncalc', ->
         done e
 
   beforeEach (done)->
+    process.env.HUBOT_GOOGLE_API_KEY = 'fake-key'
     robot = new Robot null, 'mock-adapter', yes, 'TestHubot'
     robot.adapter.on 'connected', ->
       robot.loadFile path.resolve('.', 'src', 'scripts'), 'suncalc.coffee'
@@ -77,6 +87,7 @@ describe 'hubot-suncalc', ->
     robot.shutdown()
     robot.cloudfront?.watcher.stop()
     process.removeAllListeners 'uncaughtException'
+    process.env.HUBOT_GOOGLE_API_KEY = null
 
   describe 'help', ->
     it 'should have 5', (done)->
@@ -102,9 +113,11 @@ describe 'hubot-suncalc', ->
     describe 'sunrise', ->
       it 'replies time if found 1 location', (done)->
         mockResult 'taipei', 'single'
+        adapterEvent 'reply', done, (envelope, strings)->
+          done strings[0]
         adapterEvent 'send', done, (envelope, strings)->
           expect(envelope).not.to.be.null
-          expect(strings).to.deep.equal ['Sunrise in Taipei City, Taiwan is 06:26 AM']
+          expect(strings).to.deep.equal ['Sunrise in Taipei City, Taiwan is 05:26 AM']
           do done
         adapter.receive new TextMessage user, 'testhubot  sunrise  taipei  '
       it 'ask selection if found multiple locations', (done)->
@@ -113,6 +126,8 @@ describe 'hubot-suncalc', ->
           expect(robot.listeners).to.have.length 5
           expect(envelope).not.to.be.null
           expect(strings).to.deep.equal [ginzaCandidates]
+          adapterEvent 'reply', done, (envelope, strings)->
+            done strings[0]
           adapterEvent 'send', done, (envelope, strings)->
             expect(robot.listeners).to.have.length 4
             expect(strings).to.deep.equal ['Sunrise in Ginza, Tobata Ward, Kitakyushu, Fukuoka Prefecture, Japan is 05:35 AM']
@@ -126,9 +141,11 @@ describe 'hubot-suncalc', ->
     describe 'sunset', ->
       it 'replies time if found 1 location', (done)->
         mockResult 'taipei', 'single'
+        adapterEvent 'reply', done, (envelope, strings)->
+          done strings[0]
         adapterEvent 'send', done, (envelope, strings)->
           expect(envelope).not.to.be.null
-          expect(strings).to.deep.equal ['Sunset in Taipei City, Taiwan is 07:34 PM']
+          expect(strings).to.deep.equal ['Sunset in Taipei City, Taiwan is 06:34 PM']
           do done
         adapter.receive new TextMessage user, 'testhubot  sunset  taipei  '
       it 'ask selection if found multiple locations', (done)->
@@ -137,6 +154,8 @@ describe 'hubot-suncalc', ->
           expect(robot.listeners).to.have.length 5
           expect(envelope).not.to.be.null
           expect(strings).to.deep.equal [ginzaCandidates]
+          adapterEvent 'reply', done, (envelope, strings)->
+            done strings[0]
           adapterEvent 'send', done, (envelope, strings)->
             expect(robot.listeners).to.have.length 4
             expect(strings).to.deep.equal ['Sunset in Ginza, Tobata Ward, Kitakyushu, Fukuoka Prefecture, Japan is 07:11 PM']
@@ -148,6 +167,8 @@ describe 'hubot-suncalc', ->
         adapter.receive new TextMessage user, 'testhubot  sunset  ginza  '
     describe 'moonphase', ->
       it 'replies moonphase', (done)->
+        adapterEvent 'reply', done, (envelope, strings)->
+          done strings[0]
         adapterEvent 'send', done, (envelope, strings)->
           expect(envelope).not.to.be.null
           expect(strings).to.deep.equal ['🌕  46.83%']

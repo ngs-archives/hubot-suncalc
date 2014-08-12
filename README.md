@@ -12,7 +12,7 @@ hubot > Sunrise in Taipei City, Taiwan is 5:24 AM.
 me > hubot sunset Taipei
 hubot > Sunset in Taipei City, Taiwan is 6:33 PM.
 me > hubot moonphase
-hubot > 🌔  50%
+hubot > 🌔  55.97%
 ```
 
 Commands
@@ -39,6 +39,15 @@ Installation
   ["hubot-suncalc"]
   ```
 
+Configuration
+-------------
+
+```
+HUBOT_GOOGLE_API_KEY
+```
+
+Grab yours from the [APIs console].
+
 Author
 ------
 
@@ -57,3 +66,4 @@ License
 [npm-badge]: http://img.shields.io/npm/v/hubot-suncalc.svg
 [travis]: https://travis-ci.org/ngs/hubot-suncalc
 [npm]: https://www.npmjs.org/package/hubot-suncalc
+[APIs console]: https://code.google.com/apis/console/?noredirect
